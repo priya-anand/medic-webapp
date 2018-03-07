@@ -13,7 +13,9 @@ var COOKIE_NAME = 'userCtx',
       $window,
       ipCookie,
       KansoPackages,
-      Location
+      Location,
+      $http,
+      Modal
     ) {
 
       'ngInject';
@@ -39,6 +41,21 @@ var COOKIE_NAME = 'userCtx',
         });
       };
 
+      var refreshUserCtx = function() {
+        $http
+          .get('/' + Location.dbName + '/login')
+          .then(function() {
+            Modal({
+              templateUrl: 'templates/modals/version_update.html',
+              controller: 'VersionUpdateCtrl',
+              singleton: true
+            });
+          })
+          .catch(function() {
+            navigateToLogin();
+          });
+      };
+
       var logout = function() {
         KansoPackages.session.logout(navigateToLogin);
       };
@@ -55,6 +72,8 @@ var COOKIE_NAME = 'userCtx',
           } else if (!err && userCtx.name !== response.userCtx.name) {
             // connected to the internet but server session is different
             logout();
+          } else if (!err && _.difference(userCtx.roles, response.userCtx.roles).length) {
+            refreshUserCtx();
           }
         });
       };
@@ -102,7 +121,9 @@ var COOKIE_NAME = 'userCtx',
         isDistrictAdmin: function(userCtx) {
           userCtx = userCtx || getUserCtx();
           return hasRole(userCtx, 'district_admin');
-        }
+        },
+
+        checkCurrentSession: checkCurrentSession
       };
 
     }
