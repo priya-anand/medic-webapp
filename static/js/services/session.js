@@ -14,8 +14,7 @@ var COOKIE_NAME = 'userCtx',
       ipCookie,
       KansoPackages,
       Location,
-      $http,
-      Modal
+      $http
     ) {
 
       'ngInject';
@@ -41,26 +40,11 @@ var COOKIE_NAME = 'userCtx',
         });
       };
 
-      var refreshUserCtx = function() {
-        $http
-          .get('/' + Location.dbName + '/login/identity')
-          .then(function() {
-            Modal({
-              templateUrl: 'templates/modals/version_update.html',
-              controller: 'VersionUpdateCtrl',
-              singleton: true
-            });
-          })
-          .catch(function() {
-            logout();
-          });
-      };
-
       var logout = function() {
         KansoPackages.session.logout(navigateToLogin);
       };
 
-      var checkCurrentSession = function() {
+      var checkCurrentSession = function(callback) {
         var userCtx = getUserCtx();
         if (!userCtx || !userCtx.name) {
           return logout();
@@ -73,7 +57,7 @@ var COOKIE_NAME = 'userCtx',
             // connected to the internet but server session is different
             logout();
           } else if (!err && _.difference(userCtx.roles, response.userCtx.roles).length) {
-            refreshUserCtx();
+            refreshUserCtx(callback);
           }
         });
       };
@@ -86,6 +70,19 @@ var COOKIE_NAME = 'userCtx',
       // TODO Use a shared library for this duplicated code #4021
       var hasRole = function(userCtx, role) {
         return _.contains(userCtx && userCtx.roles, role);
+      };
+
+      var refreshUserCtx = function(callback) {
+        $http
+          .get('/' + Location.dbName + '/login/identity')
+          .then(function() {
+            if (_.isFunction(callback)) {
+              callback();
+            }
+          })
+          .catch(function() {
+            logout();
+          });
       };
 
       return {
