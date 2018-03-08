@@ -43,7 +43,7 @@ var COOKIE_NAME = 'userCtx',
 
       var refreshUserCtx = function() {
         $http
-          .get('/' + Location.dbName + '/login')
+          .get('/' + Location.dbName + '/login/identity')
           .then(function() {
             Modal({
               templateUrl: 'templates/modals/version_update.html',
@@ -52,7 +52,7 @@ var COOKIE_NAME = 'userCtx',
             });
           })
           .catch(function() {
-            navigateToLogin();
+            logout();
           });
       };
 
