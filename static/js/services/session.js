@@ -56,7 +56,9 @@ var COOKIE_NAME = 'userCtx',
           } else if (!err && userCtx.name !== response.userCtx.name) {
             // connected to the internet but server session is different
             logout();
-          } else if (!err && _.difference(userCtx.roles, response.userCtx.roles).length) {
+          } else if (!err &&
+                     (_.difference(userCtx.roles, response.userCtx.roles).length ||
+                      _.difference(response.userCtx.roles, userCtx.roles).length)) {
             refreshUserCtx(callback);
           }
         });

@@ -11,7 +11,8 @@ describe('Session service', function() {
       Location,
       kansoLogout,
       kansoInfo,
-      kansoSessionListener;
+      kansoSessionListener,
+      http;
 
   beforeEach(function () {
     module('inboxApp');
@@ -29,6 +30,7 @@ describe('Session service', function() {
       status: 0,
       addEventListener: appCacheListener
     };
+    http = { get: sinon.stub() };
     module(function ($provide) {
       $provide.factory('ipCookie', function() {
         return ipCookie;
@@ -48,6 +50,7 @@ describe('Session service', function() {
           on: kansoSessionListener
         }
       });
+      $provide.value('$http', http);
     });
     inject(function($injector) {
       service = $injector.get('Session');
@@ -182,6 +185,40 @@ describe('Session service', function() {
     chai.expect(location.href).to.equal('/DB_NAME/login?redirect=CURRENT_URL');
     chai.expect(ipCookieRemove.args[0][0]).to.equal('userCtx');
     done();
+  });
+
+  it('refreshes user context cookie if a role change is detected', () => {
+    ipCookie.returns({ name: 'adm', roles: ['alpha', 'omega'] });
+    Location.dbName = 'DB_NAME';
+    http.get.returns(Promise.resolve());
+    kansoInfo.callsArgWith(0, null,  { userCtx: { name: 'adm', roles: ['beta'] } });
+    kansoInfo.onCall(3).callsArgWith(0, null, { userCtx: { name: 'adm', roles: ['alpha', 'omega', 'beta'] } });
+    kansoInfo.onCall(4).callsArgWith(0, null, { userCtx: { name: 'adm', roles: ['alpha'] } });
+    const callback = sinon.stub();
+
+    service.checkCurrentSession(callback);
+    service.checkCurrentSession();
+    service.checkCurrentSession('something');
+    service.checkCurrentSession(callback);
+    service.checkCurrentSession(callback);
+
+    return Promise.resolve().then(() => {
+      chai.expect(callback.callCount).to.equal(3);
+      chai.expect(http.get.callCount).to.equal(5);
+      chai.expect(http.get.args[0][0]).to.equal('/DB_NAME/login/identity');
+    });
+  });
+
+  it('does not refresh user context if a role change is not detected', () => {
+    ipCookie.returns({ name: 'adm', roles: ['beta'] });
+    Location.dbName = 'DB_NAME';
+    http.get.returns(Promise.resolve());
+    kansoInfo.callsArgWith(0, null,  { userCtx: { name: 'adm', roles: ['beta'] } });
+    const callback = sinon.stub();
+
+    service.checkCurrentSession(callback);
+    chai.expect(http.get.callCount).to.equal(0);
+    chai.expect(callback.callCount).to.equal(0);
   });
 
   describe('isAdmin function', function() {
