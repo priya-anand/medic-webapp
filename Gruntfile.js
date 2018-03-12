@@ -586,7 +586,8 @@ module.exports = function(grunt) {
 
   grunt.registerTask('ci_before', '', [
     'precommit',
-    'mmnpm',
+    'copy:librariestopatch',
+    'exec:applypatches',
     'build',
     'minify',
     'karma:unit_ci',
