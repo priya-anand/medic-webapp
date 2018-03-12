@@ -453,12 +453,6 @@ module.exports = function(grunt) {
         options: {
           bower: false
         }
-      },
-      phone_number: {
-        options: {
-          bower: false,
-          cwd: 'shared-libs/phone-number'
-        }
       }
     },
     'regex-check': {
