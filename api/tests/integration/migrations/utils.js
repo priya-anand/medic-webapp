@@ -1,8 +1,13 @@
 var _ = require('underscore'),
     async = require('async'),
     db = require('../../../db'),
+    dbPouch = require('../../../db-pouch'),
     DB_PREFIX = 'medic_api_integration_tests__',
     dbBackups;
+
+const PouchDB = require('pouchdb-core');
+PouchDB.plugin(require('pouchdb-adapter-http'));
+PouchDB.plugin(require('pouchdb-mapreduce'));
 
 function byId(a, b) {
   if(a._id === b._id) {
@@ -143,10 +148,12 @@ function initDb(content) {
   dbBackups = {
     audit: db.audit,
     medic: db.medic,
-    request: db.request
+    request: db.request,
+    pouchMedic: dbPouch.medic
   };
   db.audit = db.use(DB_PREFIX + 'audit');
   db.medic = db.use(DB_PREFIX + 'medic');
+  dbPouch._setMedic(new PouchDB(process.env.COUCH_URL.replace('/medic', DB_PREFIX + 'medic')));
 
   // hijack calls to db.request and make sure that they are made to the correct
   // database.
@@ -223,10 +230,12 @@ function initDb(content) {
         dbBackups = {
           audit: db.audit,
           medic: db.medic,
-          getPath: db.getPath
+          getPath: db.getPath,
+          pouchMedic: dbPouch.medic
         };
         db.audit = db.use(DB_PREFIX + 'audit');
         db.medic = db.use(DB_PREFIX + 'medic');
+        dbPouch._setMedic(new PouchDB(process.env.COUCH_URL.replace('/medic', DB_PREFIX + 'medic')));
         db.getPath = function() {
           return DB_PREFIX + 'medic/_design/medic/_rewrite';
         };
@@ -298,6 +307,7 @@ function tearDown() {
   db.audit = dbBackups.audit;
   db.medic = dbBackups.medic;
   db.getPath = dbBackups.getPath;
+  dbPouch._setMedic(dbBackups.pouchMedic);
 }
 
 function runMigration(migration) {
